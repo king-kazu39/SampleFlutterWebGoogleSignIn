@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sample_flutter_web_google_signin/firebase_options.dart';
 
 Future<void> main() async {
@@ -20,54 +21,73 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const SingInDemo(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class SingInDemo extends StatefulWidget {
+  const SingInDemo({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<SingInDemo> createState() => _SingInDemoState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _SingInDemoState extends State<SingInDemo> {
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: [
+    'email',
+  ]);
+  GoogleSignInAccount? _currentUser;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
+  @override
+  void initState() {
+    super.initState();
+    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
+      setState(() {
+        _currentUser = account;
+      });
     });
+    _googleSignIn.signInSilently();
   }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      _currentUser = await _googleSignIn.signIn();
+    } catch (error) {
+      print(error);
+    }
+  }
+
+  Future<void> _handleGoogleSignOut() async => await _googleSignIn.disconnect();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: const Text('Google Signin Demo'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            if (_currentUser != null)
+              ListTile(
+                leading: GoogleUserCircleAvatar(identity: _currentUser!),
+                title: Text(_currentUser?.displayName ?? ''),
+                subtitle: Text(_currentUser?.email ?? ''),
+              ),
+            ElevatedButton(
+              onPressed: _handleGoogleSignIn,
+              child: const Text('Google SignIn'),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _handleGoogleSignOut,
+              child: const Text('Google SignOut'),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
